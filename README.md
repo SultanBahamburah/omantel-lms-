@@ -1,1 +1,2 @@
 # omantel-lms-
+Delete README
