@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Omantel — License Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* ============ TOKENS ============ */
+  :root {
+    --bg: #0A0B0E;
+    --surface-1: #111317;
+    --surface-2: #16181D;
+    --surface-3: #1C1F25;
+    --surface-hover: #21242C;
+    --line: rgba(255,255,255,0.07);
+    --line-2: rgba(255,255,255,0.12);
+    --line-strong: rgba(255,255,255,0.18);
+
+    --text: rgba(255,255,255,0.94);
+    --text-2: rgba(255,255,255,0.66);
+    --text-3: rgba(255,255,255,0.42);
+    --text-disabled: rgba(255,255,255,0.28);
+
+    --brand: #ED8B2E;
+    --brand-soft: rgba(237,139,46,0.12);
+    --brand-deep: #B85E10;
+
+    --info: #5CA8FF;
+    --info-soft: rgba(92,168,255,0.12);
+    --success: #34D399;
+    --success-soft: rgba(52,211,153,0.12);
+    --warning: #FBBF24;
+    --warning-soft: rgba(251,191,36,0.12);
+    --danger: #F87171;
+    --danger-soft: rgba(248,113,113,0.12);
+    --violet: #A78BFA;
+    --violet-soft: rgba(167,139,250,0.12);
+
+    --r-sm: 6px;
+    --r-md: 8px;
+    --r-lg: 12px;
+    --r-xl: 16px;
+
+    --sidebar-w: 240px;
+    --topbar-h: 60px;
+  }
+
+  /* ============ LIGHT MODE TOKENS ============ */
+  body.light {
+    --bg: #F5F6F8;
+    --surface-1: #FFFFFF;
+    --surface-2: #F0F1F4;
+    --surface-3: #E6E8ED;
+    --surface-hover: #E0E2E9;
+    --line: rgba(0,0,0,0.08);
+    --line-2: rgba(0,0,0,0.12);
+    --line-strong: rgba(0,0,0,0.22);
+
+    --text: rgba(0,0,0,0.88);
+    --text-2: rgba(0,0,0,0.60);
+    --text-3: rgba(0,0,0,0.40);
+    --text-disabled: rgba(0,0,0,0.25);
+
+    --brand: #C46A0F;
+    --brand-soft: rgba(196,106,15,0.10);
+    --brand-deep: #8F4D0A;
+
+    --info: #2176CC;
+    --info-soft: rgba(33,118,204,0.10);
+    --success: #1A9E6E;
+    --success-soft: rgba(26,158,110,0.10);
+    --warning: #C47D00;
+    --warning-soft: rgba(196,125,0,0.10);
+    --danger: #D94040;
+    --danger-soft: rgba(217,64,64,0.10);
+    --violet: #6B4FD8;
+    --violet-soft: rgba(107,79,216,0.10);
+  }
+
+  /* Smooth theme transition — scoped to avoid Chart.js and animation conflicts */
+  body,
+  .topbar, .sidebar, .main,
+  .panel, .kpi, .insight, .drawer,
+  .nav-item, .btn, .tag, .filter-chip,
+  .table-toolbar, .table-footer,
+  .anomaly-card, .dept-bar-bg,
+  .tool-icon, .activity-avatar,
+  .owner-avatar, .drawer-owner-avatar,
+  .user-avatar, .role-card, .chat-wrap,
+  .chat-input, .table-search, .search,
+  .upgrade-card, .drawer-stat, .workflow-wrap {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.18s ease;
+  }
+
+  /* ============ THEME TOGGLE ============ */
+  .theme-toggle {
+    width: 54px; height: 28px;
+    border-radius: 14px;
+    background: var(--surface-3);
+    border: 1px solid var(--line-2);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.25s ease;
+  }
+  .theme-toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease;
+    display: grid; place-items: center;
+  }
+  body.light .theme-toggle-thumb {
+    transform: translateX(26px);
+    background: var(--brand);
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon { position: absolute; top: 50%; width: 12px; height: 12px; opacity: 0.5; pointer-events: none; }
+  .theme-toggle .icon-sun { right: 6px; transform: translateY(-50%); }
+  .theme-toggle .icon-moon { left: 6px; transform: translateY(-50%); }
+  body.light .theme-toggle .icon-sun { opacity: 0.7; }
+  body.light .theme-toggle .icon-moon { opacity: 0.25; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    background-image:
+      radial-gradient(1000px circle at 0% 0%, rgba(237,139,46,0.04), transparent 50%),
+      radial-gradient(1000px circle at 100% 100%, rgba(92,168,255,0.03), transparent 50%);
+  }
+  body.light {
+    background-image:
+      radial-gradient(1000px circle at 0% 0%, rgba(196,106,15,0.04), transparent 50%),
+      radial-gradient(1000px circle at 100% 100%, rgba(33,118,204,0.03), transparent 50%);
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; font-feature-settings: "tnum" 1; }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+  table { border-collapse: collapse; width: 100%; }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-h);
+    background: #0A0B0E;            /* fully opaque — content can't bleed through */
+    border-bottom: 1px solid var(--line);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+  }
+  body.light .topbar {
+    background: #FFFFFF;            /* fully opaque in light mode too */
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    width: calc(var(--sidebar-w) - 24px);
+    font-size: 15px; font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: #2A2AB5;
+    display: grid; place-items: center;
+    color: #FFFFFF;
+    font-weight: 700; font-size: 15px;
+    position: relative;
+    letter-spacing: -0.02em;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 5px;
+    height: 5px;
+    background: #ED8B2E;
+    transform: rotate(45deg);
+    border-radius: 1px;
+  }
+  .brand-name { font-weight: 500; }
+  .brand-sub { color: var(--text-3); font-size: 11px; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--line-2); }
+
+  .search-wrap {
+    flex: 1;
+    max-width: 480px;
+    position: relative;
+  }
+  .search {
+    width: 100%;
+    height: 36px;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 0 12px 0 36px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search:focus { border-color: var(--line-strong); }
+  .search-icon {
+    position: absolute;
+    left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text-3);
+    pointer-events: none;
+  }
+  .search-kbd {
+    position: absolute;
+    right: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--text-3);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--line-2);
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+
+  .top-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .icon-btn {
+    width: 34px; height: 34px;
+    border-radius: var(--r-md);
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-2);
+    display: grid; place-items: center;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { background: var(--surface-1); color: var(--text); border-color: var(--line-2); }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5CA8FF, #A78BFA);
+    color: white;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+  }
+
+  .demo-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--text-2);
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+  }
+  .demo-pill::before {
+    content: ""; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--brand);
+    box-shadow: 0 0 8px var(--brand);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* ============ LAYOUT ============ */
+  .layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    padding-top: var(--topbar-h);
+    min-height: 100vh;
+  }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    border-right: 1px solid var(--line);
+    padding: 20px 12px;
+    position: sticky;
+    top: var(--topbar-h);
+    height: calc(100vh - var(--topbar-h));
+    overflow-y: auto;
+  }
+  .nav-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0 12px;
+    margin: 16px 0 8px;
+  }
+  .nav-label:first-child { margin-top: 0; }
+  .nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    color: var(--text-2);
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: 13.5px;
+    font-weight: 400;
+    transition: all 0.12s;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--surface-1); color: var(--text); }
+  .nav-item.active {
+    background: var(--surface-2);
+    color: var(--text);
+    font-weight: 500;
+  }
+  .nav-item.active svg { color: var(--brand); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-3); }
+  .nav-item .badge {
+    margin-left: auto;
+    font-size: 10px;
+    background: var(--surface-3);
+    padding: 2px 7px;
+    border-radius: 10px;
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav-item .badge.alert { background: rgba(248,113,113,0.18); color: var(--danger); }
+
+  .upgrade-card {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+  }
+  .upgrade-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .upgrade-desc { font-size: 12px; color: var(--text-3); margin-bottom: 12px; line-height: 1.4; }
+
+  /* ============ MAIN ============ */
+  .main { padding: 32px 40px 80px; max-width: 1500px; }
+
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .page-sub { color: var(--text-3); font-size: 13px; }
+
+  /* ============ KPI ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi.featured {
+    background: linear-gradient(135deg, var(--surface-1) 0%, rgba(237,139,46,0.08) 100%);
+    border-color: rgba(237,139,46,0.25);
+  }
+  .kpi-label {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-feature-settings: "tnum" 1;
+  }
+  .kpi-value.brand { color: var(--brand); }
+  .kpi-trend {
+    font-size: 11.5px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-trend.up { color: var(--success); }
+  .kpi-trend.down { color: var(--danger); }
+  .kpi-trend.warn { color: var(--warning); }
+
+  /* ============ TWO COL ============ */
+  .two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+
+  /* ============ PANEL ============ */
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .panel-body { padding: 4px 20px; }
+  .panel-body.compact { padding: 0; }
+
+  /* ============ TAGS ============ */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; }
+  .tag.success { background: var(--success-soft); color: var(--success); }
+  .tag.success::before { background: var(--success); }
+  .tag.warning { background: var(--warning-soft); color: var(--warning); }
+  .tag.warning::before { background: var(--warning); }
+  .tag.danger  { background: var(--danger-soft);  color: var(--danger); }
+  .tag.danger::before { background: var(--danger); }
+  .tag.info { background: var(--info-soft); color: var(--info); }
+  .tag.info::before { background: var(--info); }
+  .tag.violet { background: var(--violet-soft); color: var(--violet); }
+  .tag.violet::before { background: var(--violet); }
+  .tag.brand { background: var(--brand-soft); color: var(--brand); }
+  .tag.brand::before { background: var(--brand); }
+  .tag.neutral { background: var(--surface-3); color: var(--text-2); }
+  .tag.neutral::before { background: var(--text-3); }
+  .tag.no-dot::before { display: none; }
+
+  /* ============ INSIGHT ROW ============ */
+  .insight {
+    display: flex; gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .insight:last-child { border-bottom: none; }
+  .insight-mark {
+    width: 32px; height: 32px;
+    border-radius: var(--r-md);
+    flex-shrink: 0;
+    display: grid; place-items: center;
+  }
+  .insight-mark.success { background: var(--success-soft); color: var(--success); }
+  .insight-mark.warning { background: var(--warning-soft); color: var(--warning); }
+  .insight-mark.danger  { background: var(--danger-soft);  color: var(--danger); }
+  .insight-mark.info    { background: var(--info-soft);    color: var(--info); }
+  .insight-mark.brand   { background: var(--brand-soft);   color: var(--brand); }
+  .insight-body { flex: 1; min-width: 0; }
+  .insight-title { font-size: 13.5px; font-weight: 500; margin-bottom: 4px; }
+  .insight-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.5; margin-bottom: 10px; }
+  .insight-actions { display: flex; gap: 6px; }
+
+  /* ============ BUTTONS ============ */
+  .btn {
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--line-2);
+    background: var(--surface-2);
+    color: var(--text);
+    transition: all 0.12s;
+  }
+  .btn:hover { background: var(--surface-3); border-color: var(--line-strong); }
+  .btn.brand {
+    background: var(--brand);
+    color: #1F0F00;
+    border-color: var(--brand);
+    font-weight: 600;
+  }
+  .btn.brand:hover { background: #FF9D45; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn.danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(248,113,113,0.3); }
+  .btn.danger:hover { background: rgba(248,113,113,0.2); }
+  .btn-lg { padding: 10px 18px; font-size: 13.5px; }
+
+  /* ============ DEPT ============ */
+  .dept-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 90px 80px;
+    gap: 14px;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .dept-row:last-child { border-bottom: none; }
+  .dept-name { font-weight: 500; }
+  .dept-bar-bg { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+  .dept-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .dept-bar-fill.green  { background: var(--success); }
+  .dept-bar-fill.amber  { background: var(--warning); }
+  .dept-bar-fill.red    { background: var(--danger); }
+  .dept-stat { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-2); text-align: right; }
+
+  /* ============ ACTIVITY FEED ============ */
+  .activity-row {
+    display: flex; gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+  }
+  .activity-row:last-child { border-bottom: none; }
+  .activity-row.new {
+    animation: slideIn 0.5s ease-out;
+    background: var(--brand-soft);
+    margin: 0 -20px;
+    padding: 12px 20px;
+    border-radius: var(--r-md);
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .activity-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .activity-name { font-weight: 500; font-size: 13px; }
+  .activity-meta { font-size: 11.5px; color: var(--text-3); }
+
+  /* ============ LICENSES TABLE ============ */
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-1);
+    flex-wrap: wrap;
+  }
+  .table-search {
+    flex: 1; min-width: 220px;
+    height: 32px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 0 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+  .table-search:focus { border-color: var(--line-strong); }
+
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-chip {
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text-2);
+    transition: all 0.12s;
+  }
+  .filter-chip:hover { border-color: var(--line-2); color: var(--text); }
+  .filter-chip.active {
+    background: var(--text);
+    color: #0A0B0E;
+    border-color: var(--text);
+    font-weight: 500;
+  }
+  .filter-chip .count { opacity: 0.6; margin-left: 3px; font-size: 11px; }
+
+  /* ============ SHARED TABLE BASE ============ */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+  .data-table thead tr {
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--line-2);
+  }
+  .data-table thead th {
+    text-align: left;
+    padding: 11px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  .data-table thead th.sortable { cursor: pointer; user-select: none; }
+  .data-table thead th.sortable:hover { color: var(--text); }
+  .data-table thead th .sort-arrow { margin-left: 4px; opacity: 0.4; font-size: 10px; }
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .data-table tbody tr:hover { background: var(--surface-hover); }
+  .data-table tbody tr:last-child { border-bottom: none; }
+  .data-table tbody td {
+    padding: 13px 16px;
+    vertical-align: middle;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  /* ============ LICENSES TABLE COLUMNS ============ */
+  .licenses-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;       /* Respect column widths exactly */
+    min-width: 1080px;         /* Triggers container scroll below this width */
+  }
+  .licenses-table thead tr {
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--line-2);
+  }
+  .licenses-table thead th {
+    text-align: left;
+    padding: 11px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  .licenses-table thead th.sortable { cursor: pointer; user-select: none; }
+  .licenses-table thead th.sortable:hover { color: var(--text); }
+  .licenses-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .licenses-table tbody tr:hover { background: var(--surface-hover); }
+  .licenses-table tbody tr:last-child td { border-bottom: none; }
+  .licenses-table tbody td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    font-size: 13px;
+    overflow: hidden;          /* Prevents content from blowing out fixed columns */
+  }
+
+  /* Explicit column widths — sum to 100% */
+  .licenses-table col.col-tool      { width: 23%; }
+  .licenses-table col.col-depts     { width: 18%; }
+  .licenses-table col.col-usage     { width: 14%; }
+  .licenses-table col.col-cost      { width: 11%; }
+  .licenses-table col.col-renews    { width: 12%; }
+  .licenses-table col.col-owner     { width: 14%; }
+  .licenses-table col.col-status    { width: 8%; }
+  .licenses-table th.col-status     { text-align: center; }
+
+  /* ============ TOOL CELL ============ */
+  .tool-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .tool-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+  .tool-text { min-width: 0; flex: 1; }
+  .tool-name { font-weight: 500; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tool-tier { font-size: 11px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ============ DEPT CHIPS ============ */
+  .dept-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+  .dept-chip {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--surface-3);
+    color: var(--text-2);
+    white-space: nowrap;
+    line-height: 1.5;
+  }
+
+  /* ============ USAGE CELL ============ */
+  .usage-cell { font-family: 'JetBrains Mono', monospace; min-width: 0; }
+  .usage-numbers { font-size: 12.5px; color: var(--text); font-weight: 500; }
+  .usage-pct { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .usage-bar {
+    height: 4px;
+    background: var(--surface-3);
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 110px;
+  }
+  .usage-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .usage-bar-fill.green { background: var(--success); }
+  .usage-bar-fill.amber { background: var(--warning); }
+  .usage-bar-fill.red   { background: var(--danger); }
+
+  /* ============ COST CELL ============ */
+  .cost-cell { font-family: 'JetBrains Mono', monospace; }
+  .cost-main   { font-size: 13px; color: var(--text); font-weight: 500; }
+  .cost-annual { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* ============ RENEW CELL ============ */
+  .renew-cell { font-family: 'JetBrains Mono', monospace; }
+  .renew-date { font-size: 12.5px; color: var(--text); }
+  .renew-rel { font-size: 11px; margin-top: 2px; font-weight: 500; }
+  .renew-rel.urgent { color: var(--danger); }
+  .renew-rel.soon   { color: var(--warning); }
+  .renew-rel.ok     { color: var(--text-3); }
+
+  /* ============ OWNER CELL ============ */
+  .owner-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .owner-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .owner-text { min-width: 0; flex: 1; }
+  .owner-name { font-weight: 500; font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .owner-role { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ============ RENEWALS TABLE ============ */
+  .renewals-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 1080px;
+  }
+  .renewals-table thead tr { background: var(--surface-2); border-bottom: 2px solid var(--line-2); }
+  .renewals-table thead th {
+    text-align: left;
+    padding: 11px 16px;
+    font-size: 11px; font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  /* Explicit column widths — sum to 100% */
+  .renewals-table col.col-tool    { width: 22%; }
+  .renewals-table col.col-date    { width: 13%; }
+  .renewals-table col.col-days    { width: 10%; }
+  .renewals-table col.col-value   { width: 13%; }
+  .renewals-table col.col-owner   { width: 17%; }
+  .renewals-table col.col-reco    { width: 25%; }
+  .renewals-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .renewals-table tbody tr:hover { background: var(--surface-hover); }
+  .renewals-table tbody tr:last-child td { border-bottom: none; }
+  .renewals-table tbody td {
+    padding: 13px 16px;
+    vertical-align: middle;
+    font-size: 13px;
+    overflow: hidden;
+  }
+
+  /* Days-left badge */
+  .days-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .days-badge.urgent { background: var(--danger-soft);  color: var(--danger); }
+  .days-badge.soon   { background: var(--warning-soft); color: var(--warning); }
+  .days-badge.ok     { background: var(--surface-3);    color: var(--text-2); }
+
+  /* Recommendation cell */
+  .reco-cell { font-size: 12.5px; line-height: 1.45; }
+
+  /* ============ TABLE FOOTER ============ */
+  .table-footer {
+    padding: 12px 20px;
+    background: var(--surface-1);
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .table-totals { display: flex; gap: 24px; font-family: 'JetBrains Mono', monospace; }
+  .table-totals span strong { color: var(--text); font-weight: 500; }
+
+  /* ============ DRAWER ============ */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: 560px;
+    max-width: 92vw;
+    height: 100vh;
+    background: var(--surface-1);
+    border-left: 1px solid var(--line);
+    z-index: 101;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-head {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .drawer-head .tool-icon { width: 48px; height: 48px; font-size: 14px; border-radius: 10px; }
+  .drawer-name { font-size: 18px; font-weight: 500; }
+  .drawer-meta { font-size: 12px; color: var(--text-3); margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .drawer-close {
+    margin-left: auto;
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-2);
+    display: grid; place-items: center;
+  }
+  .drawer-close:hover { background: var(--surface-2); }
+
+  .drawer-body { padding: 24px 28px; flex: 1; }
+  .drawer-section { margin-bottom: 28px; }
+  .drawer-section:last-child { margin-bottom: 0; }
+  .drawer-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .drawer-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .drawer-stat {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 14px;
+  }
+  .drawer-stat-label { font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+  .drawer-stat-value { font-size: 18px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+  .drawer-stat-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .drawer-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .drawer-row:last-child { border-bottom: none; }
+  .drawer-row-label { color: var(--text-3); }
+  .drawer-row-value { font-weight: 500; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+
+  .drawer-owner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+  }
+  .drawer-owner-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 500;
+  }
+
+  .drawer-actions {
+    padding: 20px 28px;
+    border-top: 1px solid var(--line);
+    background: var(--surface-1);
+    display: flex;
+    gap: 10px;
+    position: sticky;
+    bottom: 0;
+  }
+
+  .user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .user-row:last-child { border-bottom: none; }
+  .user-avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+  .user-info { flex: 1; }
+  .user-name { font-size: 12.5px; font-weight: 500; }
+  .user-meta { font-size: 11px; color: var(--text-3); }
+  .user-stat { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============ TAB CONTENT ============ */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ FORECAST ============ */
+  .chart-box { height: 320px; position: relative; padding: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .legend-row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+
+  /* ============ ANOMALY ============ */
+  .anomaly-card {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 18px 22px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .anomaly-card.high { border-left: 3px solid var(--danger); }
+  .anomaly-card.med { border-left: 3px solid var(--warning); }
+  .anomaly-card.low { border-left: 3px solid var(--info); }
+  .anomaly-meta { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .anomaly-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .anomaly-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.5; }
+
+  /* ============ ALLOCATE WORKFLOW ============ */
+  .workflow-wrap {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative;
+    margin: 28px 0 24px;
+  }
+  .step { text-align: center; padding: 0 12px; position: relative; }
+  .step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 22px; right: -50%;
+    width: 100%; height: 1px;
+    background: var(--line-2);
+    z-index: 0;
+  }
+  .step-num {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    margin: 0 auto 14px;
+    display: grid; place-items: center;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+    color: var(--text-2);
+  }
+  .step.active .step-num { background: var(--brand); color: #1F0F00; border-color: var(--brand); }
+  .step.done .step-num { background: var(--success-soft); color: var(--success); border-color: rgba(52,211,153,0.3); }
+  .step-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .step-desc { font-size: 11.5px; color: var(--text-3); }
+
+  .role-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .role-card {
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .role-card:hover { border-color: var(--line-2); }
+  .role-card.selected { border-color: var(--brand); background: var(--brand-soft); }
+  .role-name { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+  .role-tools { font-size: 11.5px; color: var(--text-3); }
+
+  /* ============ CHAT ============ */
+  .chat-wrap {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 28px;
+  }
+  .chat-input-wrap { display: flex; gap: 8px; margin-bottom: 18px; }
+  .chat-input {
+    flex: 1;
+    height: 44px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 0 14px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--line-strong); }
+  .chat-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 22px; }
+  .chip {
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    transition: all 0.12s;
+  }
+  .chip:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-2); }
+
+  .chat-msg { margin-bottom: 22px; }
+  .chat-msg-q {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .chat-msg-q::before {
+    content: "Q"; color: var(--brand);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    background: var(--brand-soft);
+    padding: 3px 8px;
+    border-radius: 4px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .chat-msg-a {
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .chat-msg-a::before {
+    content: "A"; color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    background: var(--surface-3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .chat-msg-a-text { font-size: 14px; line-height: 1.6; color: var(--text-2); }
+  .chat-cursor { display: inline-block; width: 8px; height: 1em; background: var(--brand); vertical-align: text-bottom; animation: blink 1s steps(2) infinite; margin-left: 2px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { padding: 24px 20px 60px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+    .workflow-steps { grid-template-columns: 1fr; gap: 12px; }
+    .step:not(:last-child)::after { display: none; }
+    .role-presets { grid-template-columns: 1fr; }
+    .licenses-table { font-size: 12px; }
+    .licenses-table thead th, .licenses-table tbody td { padding: 10px; }
+  }
+  @media (max-width: 700px) {
+    .topbar { padding: 0 12px; gap: 10px; }
+    .brand-sub { display: none; }
+    .search-wrap { display: none; }
+    .demo-pill { display: none; }
+  }
+
+  /* ============ HELPERS ============ */
+  .h-stack { display: flex; align-items: center; gap: 8px; }
+  .v-stack { display: flex; flex-direction: column; gap: 8px; }
+  svg.icon { width: 16px; height: 16px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">O</div>
+    <span class="brand-name">Omantel</span>
+    <span class="brand-sub">License Management</span>
+  </div>
+  <div class="search-wrap">
+    <svg class="search-icon icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input class="search" placeholder="Search licenses, users, departments..." />
+    <span class="search-kbd">⌘K</span>
+  </div>
+  <div class="top-actions">
+    <span class="demo-pill">Demo mode</span>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <div class="theme-toggle-thumb"></div>
+    </button>
+    <button class="icon-btn" title="Notifications">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    </button>
+    <button class="icon-btn" title="Settings">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+    <div class="avatar">JM</div>
+  </div>
+</header>
+
+<!-- ============ LAYOUT ============ -->
+<div class="layout">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="nav-label">Workspace</div>
+    <button class="nav-item active" data-tab="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" data-tab="licenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      All licenses
+      <span class="badge">14</span>
+    </button>
+    <button class="nav-item" data-tab="renewals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Renewals
+      <span class="badge alert">3</span>
+    </button>
+
+    <div class="nav-label">Intelligence</div>
+    <button class="nav-item" data-tab="predict">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      Forecasts
+    </button>
+    <button class="nav-item" data-tab="detect">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      Anomalies
+      <span class="badge alert">7</span>
+    </button>
+    <button class="nav-item" data-tab="allocate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+      Onboarding
+    </button>
+    <button class="nav-item" data-tab="ask">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Ask AI
+    </button>
+
+    <div class="upgrade-card">
+      <div class="upgrade-title">Demo data</div>
+      <div class="upgrade-desc">All numbers, users, and contracts shown are simulated for this preview.</div>
+      <button class="btn brand" style="width: 100%;">Connect real data →</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="tab-content active" id="tab-overview">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Good morning, Ahmed</div>
+          <div class="page-sub">Here's what changed in your SaaS estate · <span class="mono">Apr 27, 2026</span></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn">Export report</button>
+          <button class="btn brand">+ Add license</button>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Total licenses</div>
+          <div class="kpi-value">2,847</div>
+          <div class="kpi-trend">+62 this month</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Monthly spend</div>
+          <div class="kpi-value">$67,893</div>
+          <div class="kpi-trend down">↑ 4.2% vs last</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Utilization</div>
+          <div class="kpi-value">78%</div>
+          <div class="kpi-trend warn">↓ 4% vs target</div>
+        </div>
+        <div class="kpi featured">
+          <div class="kpi-label">Recoverable savings <span class="tag brand no-dot" style="margin-left: auto;">AI</span></div>
+          <div class="kpi-value brand">$13,290</div>
+          <div class="kpi-trend up">142 idle licenses found</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Predictive insights</div>
+            <span class="tag brand no-dot">AI generated</span>
+          </div>
+          <div class="panel-body">
+            <div class="insight">
+              <div class="insight-mark success">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">Reduce 50 unused Salesforce licenses in Finance</div>
+                <div class="insight-desc">Forecast shows Finance won't exceed 87 active users in Q3. Saves $7,250/month. Owner: Diana Lopez.</div>
+                <div class="insight-actions">
+                  <button class="btn brand">Apply</button>
+                  <button class="btn ghost">Dismiss</button>
+                </div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="insight-mark warning">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">Engineering hitting GitHub seat ceiling</div>
+                <div class="insight-desc">Current 312 seats run out in 6 weeks based on hiring plan. Recommend Enterprise tier with auto-scale.</div>
+                <div class="insight-actions">
+                  <button class="btn brand">Review plan</button>
+                  <button class="btn ghost">Snooze 30d</button>
+                </div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="insight-mark info">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">Adobe usage spike expected November 15</div>
+                <div class="insight-desc">3-year pattern: 40% Creative Cloud usage jump in Marketing during campaign season. Pre-allocate now.</div>
+                <div class="insight-actions">
+                  <button class="btn brand">Pre-allocate</button>
+                  <button class="btn ghost">Dismiss</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Renewals upcoming</div>
+            <span class="tag danger no-dot">3 in 60 days</span>
+          </div>
+          <div class="panel-body">
+            <div class="insight">
+              <div class="insight-mark danger">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">Zoom · expires in 18 days</div>
+                <div class="insight-desc">May 15, 2026 · $3,360/mo · Owner: Sarah Chen (IT Director)</div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="insight-mark danger">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">GitHub Copilot · expires in 23 days</div>
+                <div class="insight-desc">May 20, 2026 · $5,320/mo · Owner: Sarah Chen (IT Director)</div>
+              </div>
+            </div>
+            <div class="insight">
+              <div class="insight-mark warning">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </div>
+              <div class="insight-body">
+                <div class="insight-title">Adobe Creative Cloud · expires in 64 days</div>
+                <div class="insight-desc">Jun 30, 2026 · $4,680/mo · Owner: Priya Shah (Creative Director)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 24px;">
+        <div class="panel-head">
+          <div class="panel-title">Department utilization</div>
+          <span class="tag neutral no-dot">Last 30 days</span>
+        </div>
+        <div class="panel-body">
+          <div class="dept-row">
+            <span class="dept-name">Engineering</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill amber" style="width: 94%"></div></div>
+            <span class="dept-stat">94% / 312</span>
+            <span class="tag warning no-dot">Tight</span>
+          </div>
+          <div class="dept-row">
+            <span class="dept-name">Sales</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill green" style="width: 81%"></div></div>
+            <span class="dept-stat">81% / 184</span>
+            <span class="tag success no-dot">Healthy</span>
+          </div>
+          <div class="dept-row">
+            <span class="dept-name">Finance</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill red" style="width: 58%"></div></div>
+            <span class="dept-stat">58% / 137</span>
+            <span class="tag danger no-dot">Underused</span>
+          </div>
+          <div class="dept-row">
+            <span class="dept-name">Marketing</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill green" style="width: 76%"></div></div>
+            <span class="dept-stat">76% / 95</span>
+            <span class="tag success no-dot">Healthy</span>
+          </div>
+          <div class="dept-row">
+            <span class="dept-name">Operations</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill red" style="width: 49%"></div></div>
+            <span class="dept-stat">49% / 78</span>
+            <span class="tag danger no-dot">Underused</span>
+          </div>
+          <div class="dept-row">
+            <span class="dept-name">Data</span>
+            <div class="dept-bar-bg"><div class="dept-bar-fill green" style="width: 87%"></div></div>
+            <span class="dept-stat">87% / 42</span>
+            <span class="tag success no-dot">Healthy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LICENSES TABLE ============ -->
+    <section class="tab-content" id="tab-licenses">
+      <div class="page-head">
+        <div>
+          <div class="page-title">All licenses</div>
+          <div class="page-sub">Every SaaS tool, contract, and seat across the org · click any row for details</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn">Export CSV</button>
+          <button class="btn brand">+ Add license</button>
+        </div>
+      </div>
+
+      <div class="panel" style="overflow: hidden;">
+        <div class="table-toolbar">
+          <input class="table-search" id="license-search" placeholder="Search by tool, owner, department..." />
+          <div class="filter-chips" id="filter-chips">
+            <button class="filter-chip active" data-filter="all">All <span class="count" id="cnt-all"></span></button>
+            <button class="filter-chip" data-filter="healthy">Healthy <span class="count" id="cnt-healthy"></span></button>
+            <button class="filter-chip" data-filter="underused">Underused <span class="count" id="cnt-underused"></span></button>
+            <button class="filter-chip" data-filter="tight">Tight <span class="count" id="cnt-tight"></span></button>
+            <button class="filter-chip" data-filter="expiring">Expiring <span class="count" id="cnt-expiring"></span></button>
+            <button class="filter-chip" data-filter="risk">Issues <span class="count" id="cnt-risk"></span></button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="licenses-table">
+            <colgroup>
+              <col class="col-tool" />
+              <col class="col-depts" />
+              <col class="col-usage" />
+              <col class="col-cost" />
+              <col class="col-renews" />
+              <col class="col-owner" />
+              <col class="col-status" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="name">Tool</th>
+                <th>Departments</th>
+                <th class="sortable" data-sort="utilization">Usage</th>
+                <th class="sortable" data-sort="cost">Cost / mo</th>
+                <th class="sortable" data-sort="renews">Renews</th>
+                <th>Owner</th>
+                <th class="col-status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="licenses-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <span id="row-count">Showing 15 of 15 licenses</span>
+          <div class="table-totals">
+            <span>Total spend: <strong id="total-cost">$67,893/mo</strong></span>
+            <span>Total seats: <strong id="total-seats">2,847</strong></span>
+            <span>Avg utilization: <strong id="avg-util">78%</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RENEWALS ============ -->
+    <section class="tab-content" id="tab-renewals">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Upcoming renewals</div>
+          <div class="page-sub">Contract expirations sorted by urgency · contact the owner to renew or renegotiate</div>
+        </div>
+        <button class="btn">Export schedule</button>
+      </div>
+
+      <div class="three-col">
+        <div class="kpi">
+          <div class="kpi-label">Next 30 days</div>
+          <div class="kpi-value" style="color: var(--danger);">2</div>
+          <div class="kpi-trend">$8,680/mo at risk</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Next 90 days</div>
+          <div class="kpi-value" style="color: var(--warning);">5</div>
+          <div class="kpi-trend">$22,790/mo total</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Annual contract value</div>
+          <div class="kpi-value">$814,716</div>
+          <div class="kpi-trend">across 15 vendors</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Renewal schedule</div>
+          <span class="tag neutral no-dot">Sorted by date</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="renewals-table">
+            <colgroup>
+              <col class="col-tool" />
+              <col class="col-date" />
+              <col class="col-days" />
+              <col class="col-value" />
+              <col class="col-owner" />
+              <col class="col-reco" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Renewal Date</th>
+                <th>Days Left</th>
+                <th>Annual Value</th>
+                <th>Owner</th>
+                <th>Recommendation</th>
+              </tr>
+            </thead>
+            <tbody id="renewals-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREDICT ============ -->
+    <section class="tab-content" id="tab-predict">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Forecasts</div>
+          <div class="page-sub">License demand prediction. Trained on 24 months of usage, hiring plans, and seasonal patterns.</div>
+        </div>
+        <span class="tag brand no-dot">Updated 12m ago</span>
+      </div>
+
+      <div class="panel" style="margin-bottom: 16px;">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">GitHub Enterprise · seat demand</div>
+            <div style="font-size: 11.5px; color: var(--text-3); margin-top: 4px;">Engineering · next 6 months</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot" style="background: var(--text);"></span> Actual</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--brand);"></span> Forecast</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--text-3);"></span> Capacity</div>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="forecast-chart"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Recommended actions</div>
+          <span class="tag brand no-dot">4 actions</span>
+        </div>
+        <div class="panel-body">
+          <div class="insight">
+            <div class="insight-mark brand">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title">Reduce 50 Salesforce licenses in Finance · $87,000/year</div>
+              <div class="insight-desc">Confidence 92%. Finance peaked at 84 active users in Q1, projected max 87 in Q3. Currently holding 137 seats.</div>
+              <div class="insight-actions">
+                <button class="btn brand">Apply</button>
+                <button class="btn">View forecast</button>
+              </div>
+            </div>
+          </div>
+          <div class="insight">
+            <div class="insight-mark warning">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title">Upgrade GitHub plan in 6 weeks</div>
+              <div class="insight-desc">Confidence 96%. Engineering hiring +24 by Sept 1. Will exceed 312-seat ceiling on week 6.</div>
+              <div class="insight-actions">
+                <button class="btn brand">Review plan</button>
+                <button class="btn">See hiring data</button>
+              </div>
+            </div>
+          </div>
+          <div class="insight">
+            <div class="insight-mark info">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title">Pre-allocate 18 Adobe seats for November</div>
+              <div class="insight-desc">Confidence 88%. Marketing usage spikes 40% every November (campaign season, 3-year pattern).</div>
+              <div class="insight-actions">
+                <button class="btn brand">Pre-allocate</button>
+                <button class="btn">Show pattern</button>
+              </div>
+            </div>
+          </div>
+          <div class="insight">
+            <div class="insight-mark success">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title">Switch Notion to annual billing · saves $4,320/year</div>
+              <div class="insight-desc">Confidence 99%. Usage stable at 180-195 seats. Annual contract saves 18% vs monthly.</div>
+              <div class="insight-actions">
+                <button class="btn brand">Switch billing</button>
+                <button class="btn">Compare plans</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DETECT ============ -->
+    <section class="tab-content" id="tab-detect">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Anomalies</div>
+          <div class="page-sub">Unusual patterns flagged in real time. Behavioral baselines update continuously.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn">All severity</button>
+          <button class="btn brand">Active (7)</button>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="kpi">
+          <div class="kpi-label">High severity</div>
+          <div class="kpi-value" style="color: var(--danger);">2</div>
+          <div class="kpi-trend">Security & access risks</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Medium</div>
+          <div class="kpi-value" style="color: var(--warning);">3</div>
+          <div class="kpi-trend">Usage patterns</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Low / monitoring</div>
+          <div class="kpi-value" style="color: var(--info);">2</div>
+          <div class="kpi-trend">Worth watching</div>
+        </div>
+      </div>
+
+      <div class="anomaly-card high">
+        <div>
+          <div class="anomaly-meta">High · 2h ago · security</div>
+          <div class="anomaly-title">3 ex-employees retain Jira and Confluence access</div>
+          <div class="anomaly-desc">Daniel R. (left Mar 12), Aisha K. (left Apr 1), and Tom N. (left Apr 18) are still active. Tom N. logged in 6 days ago. Immediate revoke recommended.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn danger">Revoke all</button>
+          <button class="btn">Review</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card high">
+        <div>
+          <div class="anomaly-meta">High · 5h ago · waste</div>
+          <div class="anomaly-title">42 inactive Slack users — 60+ days without login</div>
+          <div class="anomaly-desc">Across Sales (18), Operations (14), and Marketing (10). Burning $1,260/month. 12 users have been inactive 6+ months.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn brand">Reclaim seats</button>
+          <button class="btn">List users</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card med">
+        <div>
+          <div class="anomaly-meta">Medium · today · usage</div>
+          <div class="anomaly-title">Unusual Figma spike in Sales department</div>
+          <div class="anomaly-desc">Sales Figma usage is 8x baseline. 4 new active users in Sales this week. Possible misallocation or unauthorized provisioning.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn">Investigate</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card med">
+        <div>
+          <div class="anomaly-meta">Medium · yesterday · waste</div>
+          <div class="anomaly-title">Adobe Creative Cloud — 18 idle seats in Operations</div>
+          <div class="anomaly-desc">Allocated during March campaign launch, never reassigned. Last activity 47 days ago. $1,080/month wasted.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn brand">Reclaim</button>
+          <button class="btn">Reassign</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card med">
+        <div>
+          <div class="anomaly-meta">Medium · 3d ago · usage</div>
+          <div class="anomaly-title">Datadog ingest dropped 34% in Engineering</div>
+          <div class="anomaly-desc">Possible cause: monitoring config change on Apr 22. Verify dashboards and alerting still cover production services.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn">Investigate</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card low">
+        <div>
+          <div class="anomaly-meta">Low · monitoring · spending</div>
+          <div class="anomaly-title">Notion seat count fluctuating weekly</div>
+          <div class="anomaly-desc">±8 seats every Monday. Likely contractors. Not yet a problem; flag if it grows.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn ghost">Acknowledge</button>
+        </div>
+      </div>
+
+      <div class="anomaly-card low">
+        <div>
+          <div class="anomaly-meta">Low · monitoring · usage</div>
+          <div class="anomaly-title">Zoom usage trending down across org</div>
+          <div class="anomaly-desc">−12% over 30 days. Likely shift to Google Meet. Evaluate seat reduction at next renewal.</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn ghost">Acknowledge</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ALLOCATE ============ -->
+    <section class="tab-content" id="tab-allocate">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Onboarding & allocation</div>
+          <div class="page-sub">When someone joins, Omantel LMS predicts the tools they need and provisions them automatically.</div>
+        </div>
+        <span class="tag brand no-dot">147 auto-assignments this month</span>
+      </div>
+
+      <div class="workflow-wrap">
+        <div style="font-size: 16px; font-weight: 500; margin-bottom: 4px;">Try it: simulate a new hire</div>
+        <div style="font-size: 13px; color: var(--text-3); margin-bottom: 20px;">Pick a role and watch Omantel LMS provision the right licenses based on team behavior and historical usage.</div>
+
+        <div class="role-presets">
+          <div class="role-card selected" data-role="engineer">
+            <div class="role-name">Backend engineer</div>
+            <div class="role-tools">GitHub, Copilot, Linear, Datadog, Slack</div>
+          </div>
+          <div class="role-card" data-role="ae">
+            <div class="role-name">Account executive</div>
+            <div class="role-tools">Salesforce, Gong, Outreach, Slack</div>
+          </div>
+          <div class="role-card" data-role="designer">
+            <div class="role-name">Product designer</div>
+            <div class="role-tools">Figma, Notion, Slack, Loom</div>
+          </div>
+        </div>
+
+        <div class="workflow-steps" id="workflow-steps">
+          <div class="step done">
+            <div class="step-num">1</div>
+            <div class="step-title">HRIS event</div>
+            <div class="step-desc">New hire detected</div>
+          </div>
+          <div class="step done">
+            <div class="step-num">2</div>
+            <div class="step-title">Role mapping</div>
+            <div class="step-desc">Predict tools needed</div>
+          </div>
+          <div class="step active">
+            <div class="step-num">3</div>
+            <div class="step-title">Provision</div>
+            <div class="step-desc">Auto-assign seats</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-title">Notify</div>
+            <div class="step-desc">Welcome email sent</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <button class="btn brand btn-lg" id="simulate-btn">Simulate onboarding</button>
+          <span style="font-size: 12.5px; color: var(--text-3);" id="sim-status">Will provision 5 licenses · estimated cost $112/mo</span>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="panel" style="padding: 20px;">
+          <div class="mono" style="font-size: 11px; color: var(--brand); letter-spacing: 0.06em; margin-bottom: 10px;">SIGNAL 01</div>
+          <div style="font-size: 15px; font-weight: 500; margin-bottom: 6px;">Role + department</div>
+          <div style="font-size: 12.5px; color: var(--text-3); line-height: 1.5;">What does Omantel LMS see other people in this exact role using? Build a behavioral baseline from peers.</div>
+        </div>
+        <div class="panel" style="padding: 20px;">
+          <div class="mono" style="font-size: 11px; color: var(--brand); letter-spacing: 0.06em; margin-bottom: 10px;">SIGNAL 02</div>
+          <div style="font-size: 15px; font-weight: 500; margin-bottom: 6px;">Manager's team</div>
+          <div style="font-size: 12.5px; color: var(--text-3); line-height: 1.5;">What tools does their direct team use daily? Some teams have niche stacks not covered by role alone.</div>
+        </div>
+        <div class="panel" style="padding: 20px;">
+          <div class="mono" style="font-size: 11px; color: var(--brand); letter-spacing: 0.06em; margin-bottom: 10px;">SIGNAL 03</div>
+          <div style="font-size: 15px; font-weight: 500; margin-bottom: 6px;">Historical usage</div>
+          <div style="font-size: 12.5px; color: var(--text-3); line-height: 1.5;">What gets used vs requested-but-ignored? Skip the dead weight automatically.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ASK AI ============ -->
+    <section class="tab-content" id="tab-ask">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Ask Omantel LMS anything</div>
+          <div class="page-sub">Plain-English answers about your SaaS portfolio. No reports, no SQL.</div>
+        </div>
+      </div>
+
+      <div class="chat-wrap">
+        <div class="chat-input-wrap">
+          <input type="text" class="chat-input" id="chat-input" placeholder="Ask anything about your licenses..." />
+          <button class="btn brand btn-lg" id="chat-ask">Ask →</button>
+        </div>
+        <div class="chat-suggestions">
+          <button class="chip" data-q="Where are we wasting money?">Where are we wasting money?</button>
+          <button class="chip" data-q="Which licenses expire in the next 60 days?">Which licenses expire in the next 60 days?</button>
+          <button class="chip" data-q="Forecast Q4 license needs">Forecast Q4 license needs</button>
+          <button class="chip" data-q="Show inactive users">Show inactive users</button>
+          <button class="chip" data-q="Who owns Copilot?">Who owns Copilot?</button>
+          <button class="chip" data-q="Compare cost per employee across departments">Cost per employee by dept</button>
+        </div>
+        <div id="chat-thread">
+          <div class="chat-msg">
+            <div class="chat-msg-q">Where are we wasting money?</div>
+            <div class="chat-msg-a">
+              <div class="chat-msg-a-text">Three areas account for $13,290/month in waste. Salesforce in Finance ($7,250 — 50 idle seats, owner Diana Lopez), Slack inactive users ($1,260 — 42 users with no login in 60+ days, owner Sarah Chen), and Adobe Creative Cloud in Operations ($2,890 — 18 unused seats from the last campaign cycle, owner Priya Shah). The Udacity Enterprise contract is also underused at 63% — 22 unredeemed seats. Reclaiming all of this cuts your monthly spend by 19.6%.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ DRAWER ============ -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head" id="drawer-head"></div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-actions">
+    <button class="btn brand" style="flex: 1;">Renew contract</button>
+    <button class="btn" style="flex: 1;">Reassign seats</button>
+    <button class="btn">Export users</button>
+  </div>
+</div>
+
+<script>
+  // ============ LICENSE DATA ============
+  const TODAY = new Date('2026-04-27');
+
+  const licenses = [
+    { id:'github',   name:'GitHub Enterprise',     icon:'GH', iconBg:'#24292E', tier:'Enterprise',          depts:['Engineering'],                 seats:312, active:294, cost:9360,  renews:'2026-08-15', owner:'Marcus Reed',   ownerRole:'Engineering Manager', ownerColor:'#34D399', status:'tight' },
+    { id:'copilot',  name:'GitHub Copilot',        icon:'CO', iconBg:'#1F2937', tier:'Business',            depts:['Engineering','Data'],          seats:280, active:247, cost:5320,  renews:'2026-05-20', owner:'Sarah Chen',    ownerRole:'IT Director',          ownerColor:'#5CA8FF', status:'expiring' },
+    { id:'salesforce',name:'Salesforce',           icon:'SF', iconBg:'#00A1E0', tier:'Enterprise',          depts:['Sales','Finance'],             seats:184, active:87,  cost:14720, renews:'2027-02-15', owner:'Diana Lopez',   ownerRole:'Sales Ops Lead',       ownerColor:'#A78BFA', status:'underused' },
+    { id:'slack',    name:'Slack',                 icon:'SL', iconBg:'#4A154B', tier:'Business+',           depts:['All departments'],             seats:487, active:445, cost:3896,  renews:'2026-09-14', owner:'Sarah Chen',    ownerRole:'IT Director',          ownerColor:'#5CA8FF', status:'healthy' },
+    { id:'adobe',    name:'Adobe Creative Cloud',  icon:'AD', iconBg:'#FA0F00', tier:'All Apps',            depts:['Marketing','Design','Operations'], seats:78, active:60, cost:4680, renews:'2026-06-30', owner:'Priya Shah',  ownerRole:'Creative Director',    ownerColor:'#FBBF24', status:'expiring' },
+    { id:'figma',    name:'Figma',                 icon:'FG', iconBg:'#0ACF83', tier:'Organization',        depts:['Design','Engineering','Marketing'], seats:95, active:78, cost:1425, renews:'2026-11-22', owner:'Priya Shah', ownerRole:'Creative Director',    ownerColor:'#FBBF24', status:'healthy' },
+    { id:'notion',   name:'Notion',                icon:'NO', iconBg:'#0F0F0F', tier:'Business',            depts:['All departments'],             seats:195, active:178, cost:1560,  renews:'2027-01-10', owner:'Sarah Chen',    ownerRole:'IT Director',          ownerColor:'#5CA8FF', status:'healthy' },
+    { id:'datadog',  name:'Datadog',               icon:'DD', iconBg:'#632CA6', tier:'Pro',                 depts:['Engineering'],                 seats:142, active:134, cost:4970,  renews:'2026-08-05', owner:'Marcus Reed',   ownerRole:'Engineering Manager', ownerColor:'#34D399', status:'tight' },
+    { id:'linear',   name:'Linear',                icon:'LN', iconBg:'#5E6AD2', tier:'Business',            depts:['Engineering','Product'],       seats:148, active:132, cost:1184,  renews:'2026-12-18', owner:'Marcus Reed',   ownerRole:'Engineering Manager', ownerColor:'#34D399', status:'healthy' },
+    { id:'jira',     name:'Jira & Confluence',     icon:'JR', iconBg:'#0052CC', tier:'Premium',             depts:['Engineering','Operations'],    seats:220, active:184, cost:2200,  renews:'2026-07-02', owner:'Sarah Chen',    ownerRole:'IT Director',          ownerColor:'#5CA8FF', status:'risk' },
+    { id:'zoom',     name:'Zoom',                  icon:'ZM', iconBg:'#2D8CFF', tier:'Business',            depts:['All departments'],             seats:240, active:198, cost:3360,  renews:'2026-05-15', owner:'Sarah Chen',    ownerRole:'IT Director',          ownerColor:'#5CA8FF', status:'expiring' },
+    { id:'udacity',  name:'Udacity Enterprise',    icon:'UD', iconBg:'#02B3E4', tier:'Team',                depts:['Engineering','Data','Marketing'], seats:60, active:38,  cost:2400,  renews:'2026-09-15', owner:'Anna Petrov',   ownerRole:'L&D Manager',          ownerColor:'#F87171', status:'underused' },
+    { id:'gong',     name:'Gong',                  icon:'GO', iconBg:'#8038F4', tier:'Enterprise',          depts:['Sales'],                       seats:95,  active:88,  cost:4750,  renews:'2027-04-01', owner:'Diana Lopez',   ownerRole:'Sales Ops Lead',       ownerColor:'#A78BFA', status:'healthy' },
+    { id:'snowflake',name:'Snowflake',             icon:'SN', iconBg:'#29B5E8', tier:'Business Critical',   depts:['Data','Engineering'],          seats:42,  active:38,  cost:6300,  renews:'2026-10-31', owner:'David Kim',     ownerRole:'Data Lead',            ownerColor:'#06B6D4', status:'healthy' }
+  ];
+
+  // Sample users per license for drawer detail
+  const sampleUsers = {
+    github: [
+      { name:'Marcus Reed', role:'Engineering Mgr', initials:'MR', usage:'Daily', color:'#34D399' },
+      { name:'Sara Khan', role:'Backend eng', initials:'SK', usage:'Daily', color:'#5CA8FF' },
+      { name:'Tom Reilly', role:'Full-stack eng', initials:'TR', usage:'Daily', color:'#FBBF24' },
+      { name:'Priya Patel', role:'Backend eng', initials:'PP', usage:'Weekly', color:'#A78BFA' },
+      { name:'Liam Chen', role:'Frontend eng', initials:'LC', usage:'Inactive 38d', color:'#F87171' }
+    ],
+    copilot: [
+      { name:'Sara Khan', role:'Backend eng', initials:'SK', usage:'Daily', color:'#5CA8FF' },
+      { name:'Marcus Reed', role:'Engineering Mgr', initials:'MR', usage:'Daily', color:'#34D399' },
+      { name:'David Kim', role:'Data Lead', initials:'DK', usage:'Weekly', color:'#06B6D4' },
+      { name:'Tom Reilly', role:'Full-stack eng', initials:'TR', usage:'Daily', color:'#FBBF24' },
+      { name:'Aisha Wong', role:'ML engineer', initials:'AW', usage:'Daily', color:'#A78BFA' }
+    ],
+    salesforce: [
+      { name:'Diana Lopez', role:'Sales Ops', initials:'DL', usage:'Daily', color:'#A78BFA' },
+      { name:'Marco Russo', role:'Account exec', initials:'MR', usage:'Daily', color:'#34D399' },
+      { name:'Jenna Park', role:'AE', initials:'JP', usage:'Inactive 72d', color:'#F87171' },
+      { name:'Kyle Bennett', role:'AE', initials:'KB', usage:'Inactive 91d', color:'#F87171' }
+    ],
+    udacity: [
+      { name:'Anna Petrov', role:'L&D Manager', initials:'AP', usage:'Active', color:'#F87171' },
+      { name:'Marcus Reed', role:'Engineering Mgr', initials:'MR', usage:'Course in progress', color:'#34D399' },
+      { name:'Liam Chen', role:'Frontend eng', initials:'LC', usage:'Never accessed', color:'#F87171' },
+      { name:'Olivia Tan', role:'Marketing analyst', initials:'OT', usage:'Active', color:'#A78BFA' }
+    ]
+  };
+
+  function defaultUsers(license) {
+    return [
+      { name:'Active user 1', role:'Daily user', initials:'A1', usage:'Daily', color:'#5CA8FF' },
+      { name:'Active user 2', role:'Daily user', initials:'A2', usage:'Daily', color:'#34D399' },
+      { name:'Active user 3', role:'Weekly user', initials:'A3', usage:'Weekly', color:'#FBBF24' },
+      { name:'Idle user', role:'Has seat', initials:'IU', usage:'Inactive ' + Math.floor(30 + Math.random() * 60) + 'd', color:'#F87171' }
+    ];
+  }
+
+  // ============ HELPERS ============
+  function daysUntil(dateStr) {
+    const d = new Date(dateStr);
+    return Math.round((d - TODAY) / (1000 * 60 * 60 * 24));
+  }
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function statusTag(status) {
+    const map = {
+      healthy: '<span class="tag success no-dot">Healthy</span>',
+      tight: '<span class="tag warning no-dot">Tight</span>',
+      underused: '<span class="tag danger no-dot">Underused</span>',
+      expiring: '<span class="tag danger no-dot">Expiring soon</span>',
+      risk: '<span class="tag danger no-dot">Issue</span>'
+    };
+    return map[status] || map.healthy;
+  }
+  function utilColor(util) {
+    if (util >= 90) return 'amber';
+    if (util >= 60) return 'green';
+    return 'red';
+  }
+  function renewClass(days) {
+    if (days <= 30) return 'urgent';
+    if (days <= 90) return 'soon';
+    return 'ok';
+  }
+  function renewLabel(days) {
+    if (days < 0) return 'expired';
+    if (days === 0) return 'today';
+    if (days <= 90) return `in ${days}d`;
+    const months = Math.round(days / 30);
+    return `in ${months}mo`;
+  }
+  function ownerInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  }
+  function fmtMoney(n) {
+    return '$' + n.toLocaleString('en-US');
+  }
+
+  // ============ RENDER LICENSES TABLE ============
+  let currentFilter = 'all';
+  let currentSort = { col: 'name', dir: 'asc' };
+
+  function filterLicenses() {
+    const search = (document.getElementById('license-search')?.value || '').toLowerCase();
+    return licenses.filter(l => {
+      if (currentFilter !== 'all' && l.status !== currentFilter) return false;
+      if (search) {
+        const hay = `${l.name} ${l.owner} ${l.depts.join(' ')} ${l.tier}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortLicenses(arr) {
+    const { col, dir } = currentSort;
+    return [...arr].sort((a, b) => {
+      let va, vb;
+      if (col === 'name') { va = a.name; vb = b.name; }
+      else if (col === 'utilization') { va = a.active / a.seats; vb = b.active / b.seats; }
+      else if (col === 'cost') { va = a.cost; vb = b.cost; }
+      else if (col === 'renews') { va = new Date(a.renews); vb = new Date(b.renews); }
+      else { va = a.name; vb = b.name; }
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function renderTable() {
+    const filtered = sortLicenses(filterLicenses());
+    const tbody = document.getElementById('licenses-tbody');
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 60px 20px; text-align: center; color: var(--text-3);">No licenses match your filter</td></tr>`;
+    } else {
+      tbody.innerHTML = filtered.map(l => {
+        const util = Math.round(l.active / l.seats * 100);
+        const days = daysUntil(l.renews);
+        return `
+          <tr data-license="${l.id}">
+            <td>
+              <div class="tool-cell">
+                <div class="tool-icon" style="background: ${l.iconBg};">${l.icon}</div>
+                <div class="tool-text">
+                  <div class="tool-name">${l.name}</div>
+                  <div class="tool-tier">${l.tier}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="dept-chips">
+                ${l.depts.map(d => `<span class="dept-chip">${d}</span>`).join('')}
+              </div>
+            </td>
+            <td>
+              <div class="usage-cell">
+                <div class="usage-numbers">${l.active} / ${l.seats}</div>
+                <div class="usage-pct">${util}% utilization</div>
+                <div class="usage-bar"><div class="usage-bar-fill ${utilColor(util)}" style="width: ${util}%"></div></div>
+              </div>
+            </td>
+            <td>
+              <div class="cost-cell">
+                <div class="cost-main">${fmtMoney(l.cost)}</div>
+                <div class="cost-annual">${fmtMoney(l.cost * 12)}/yr</div>
+              </div>
+            </td>
+            <td>
+              <div class="renew-cell">
+                <div class="renew-date">${formatDate(l.renews)}</div>
+                <div class="renew-rel ${renewClass(days)}">${renewLabel(days)}</div>
+              </div>
+            </td>
+            <td>
+              <div class="owner-cell">
+                <div class="owner-avatar" style="background: ${l.ownerColor}22; color: ${l.ownerColor};">${ownerInitials(l.owner)}</div>
+                <div class="owner-text">
+                  <div class="owner-name">${l.owner}</div>
+                  <div class="owner-role">${l.ownerRole}</div>
+                </div>
+              </div>
+            </td>
+            <td style="text-align:center;">${statusTag(l.status)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Update counts and totals
+    const all = licenses.length;
+    const counts = {
+      all,
+      healthy: licenses.filter(l => l.status === 'healthy').length,
+      tight: licenses.filter(l => l.status === 'tight').length,
+      underused: licenses.filter(l => l.status === 'underused').length,
+      expiring: licenses.filter(l => l.status === 'expiring').length,
+      risk: licenses.filter(l => l.status === 'risk').length
+    };
+    Object.entries(counts).forEach(([k, v]) => {
+      const el = document.getElementById('cnt-' + k);
+      if (el) el.textContent = v;
+    });
+
+    document.getElementById('row-count').textContent = `Showing ${filtered.length} of ${licenses.length} licenses`;
+    const totalCost = licenses.reduce((s, l) => s + l.cost, 0);
+    const totalSeats = licenses.reduce((s, l) => s + l.seats, 0);
+    const avgUtil = Math.round(licenses.reduce((s, l) => s + (l.active / l.seats), 0) / licenses.length * 100);
+    document.getElementById('total-cost').textContent = fmtMoney(totalCost) + '/mo';
+    document.getElementById('total-seats').textContent = totalSeats.toLocaleString();
+    document.getElementById('avg-util').textContent = avgUtil + '%';
+
+    // Wire row clicks
+    tbody.querySelectorAll('tr[data-license]').forEach(tr => {
+      tr.addEventListener('click', () => openDrawer(tr.dataset.license));
+    });
+  }
+
+  // ============ RENDER RENEWALS TABLE ============
+  function renderRenewals() {
+    const sorted = [...licenses].sort((a, b) => new Date(a.renews) - new Date(b.renews));
+    const tbody = document.getElementById('renewals-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = sorted.map(l => {
+      const days = daysUntil(l.renews);
+      const annual = l.cost * 12;
+      let recommendation, recColor;
+      if (l.status === 'underused') { recommendation = `Reduce ${Math.round(l.seats - l.active * 1.1)} seats before renewal`; recColor = 'var(--danger)'; }
+      else if (l.status === 'tight') { recommendation = 'Increase seat count or upgrade tier'; recColor = 'var(--warning)'; }
+      else if (l.status === 'expiring') { recommendation = 'Confirm renewal terms with vendor'; recColor = 'var(--danger)'; }
+      else if (days < 90 && annual > 30000) { recommendation = 'Negotiate annual discount'; recColor = 'var(--info)'; }
+      else { recommendation = 'No action needed'; recColor = 'var(--text-3)'; }
+
+      return `
+        <tr data-license="${l.id}">
+          <td>
+            <div class="tool-cell">
+              <div class="tool-icon" style="background: ${l.iconBg};">${l.icon}</div>
+              <div class="tool-text">
+                <div class="tool-name">${l.name}</div>
+                <div class="tool-tier">${l.tier}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="renew-cell">
+              <div class="renew-date">${formatDate(l.renews)}</div>
+            </div>
+          </td>
+          <td>
+            <span class="days-badge ${renewClass(days)}">${renewLabel(days)}</span>
+          </td>
+          <td>
+            <div class="cost-cell">
+              <div class="cost-main">${fmtMoney(annual)}</div>
+              <div class="cost-annual">${fmtMoney(l.cost)}/mo</div>
+            </div>
+          </td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background: ${l.ownerColor}22; color: ${l.ownerColor};">${ownerInitials(l.owner)}</div>
+              <div class="owner-text">
+                <div class="owner-name">${l.owner}</div>
+                <div class="owner-role">${l.ownerRole}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="reco-cell" style="color: ${recColor};">${recommendation}</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    tbody.querySelectorAll('tr[data-license]').forEach(tr => {
+      tr.addEventListener('click', () => openDrawer(tr.dataset.license));
+    });
+  }
+
+  // ============ DRAWER ============
+  function openDrawer(id) {
+    const l = licenses.find(x => x.id === id);
+    if (!l) return;
+    const days = daysUntil(l.renews);
+    const util = Math.round(l.active / l.seats * 100);
+    const annual = l.cost * 12;
+    const idle = l.seats - l.active;
+    const users = sampleUsers[l.id] || defaultUsers(l);
+
+    document.getElementById('drawer-head').innerHTML = `
+      <div class="tool-icon" style="background: ${l.iconBg};">${l.icon}</div>
+      <div style="flex: 1; min-width: 0;">
+        <div class="drawer-name">${l.name}</div>
+        <div class="drawer-meta">
+          <span>${l.tier}</span>
+          <span>·</span>
+          ${statusTag(l.status)}
+        </div>
+      </div>
+      <button class="drawer-close" id="drawer-close-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    `;
+
+    document.getElementById('drawer-body').innerHTML = `
+      <div class="drawer-section">
+        <div class="drawer-stats">
+          <div class="drawer-stat">
+            <div class="drawer-stat-label">Active users</div>
+            <div class="drawer-stat-value">${l.active} / ${l.seats}</div>
+            <div class="drawer-stat-sub">${util}% utilization · ${idle} idle</div>
+          </div>
+          <div class="drawer-stat">
+            <div class="drawer-stat-label">Monthly cost</div>
+            <div class="drawer-stat-value">${fmtMoney(l.cost)}</div>
+            <div class="drawer-stat-sub">${fmtMoney(annual)}/year</div>
+          </div>
+          <div class="drawer-stat">
+            <div class="drawer-stat-label">Renewal date</div>
+            <div class="drawer-stat-value" style="font-size: 14px;">${formatDate(l.renews)}</div>
+            <div class="drawer-stat-sub" style="color: ${days <= 30 ? 'var(--danger)' : days <= 90 ? 'var(--warning)' : 'var(--text-3)'};">${renewLabel(days)}</div>
+          </div>
+          <div class="drawer-stat">
+            <div class="drawer-stat-label">Cost per active user</div>
+            <div class="drawer-stat-value">${fmtMoney(Math.round(l.cost / l.active))}</div>
+            <div class="drawer-stat-sub">/month</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">License owner</div>
+        <div class="drawer-owner">
+          <div class="drawer-owner-avatar" style="background: ${l.ownerColor}33; color: ${l.ownerColor};">${ownerInitials(l.owner)}</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 500; font-size: 14px;">${l.owner}</div>
+            <div style="font-size: 12px; color: var(--text-3);">${l.ownerRole} · responsible for renewal</div>
+          </div>
+          <button class="btn">Message</button>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Contract details</div>
+        <div class="drawer-row"><span class="drawer-row-label">Tier</span><span class="drawer-row-value">${l.tier}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Departments</span><span class="drawer-row-value">${l.depts.join(', ')}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Total seats</span><span class="drawer-row-value">${l.seats}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Active users (30d)</span><span class="drawer-row-value">${l.active}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Idle seats</span><span class="drawer-row-value" style="color: ${idle > l.seats * 0.2 ? 'var(--danger)' : 'var(--text)'};">${idle}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Renewal</span><span class="drawer-row-value">${formatDate(l.renews)}</span></div>
+        <div class="drawer-row"><span class="drawer-row-label">Annual contract value</span><span class="drawer-row-value">${fmtMoney(annual)}</span></div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-label">Recent users · top activity</div>
+        ${users.map(u => `
+          <div class="user-row">
+            <div class="user-avatar" style="background: ${u.color}33; color: ${u.color};">${u.initials}</div>
+            <div class="user-info">
+              <div class="user-name">${u.name}</div>
+              <div class="user-meta">${u.role}</div>
+            </div>
+            <div class="user-stat" style="${u.usage.includes('Inactive') || u.usage.includes('Never') ? 'color: var(--danger);' : ''}">${u.usage}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${l.status !== 'healthy' ? `
+      <div class="drawer-section">
+        <div class="drawer-label">Omantel LMS Recommendation</div>
+        <div style="background: ${l.status === 'underused' ? 'var(--danger-soft)' : l.status === 'expiring' ? 'var(--danger-soft)' : 'var(--warning-soft)'}; border: 1px solid ${l.status === 'underused' || l.status === 'expiring' ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.25)'}; padding: 14px; border-radius: var(--r-md); font-size: 13px; line-height: 1.55;">
+          ${l.status === 'underused' ? `Forecast suggests reducing ${Math.round(idle * 0.8)} seats before renewal could save ${fmtMoney(Math.round(idle * 0.8 * (l.cost / l.seats) * 12))}/year. Confidence 90%.` : ''}
+          ${l.status === 'tight' ? `Approaching capacity — ${util}% utilization. Recommend increasing seats by ${Math.round(l.seats * 0.15)} or upgrading tier before bottleneck.` : ''}
+          ${l.status === 'expiring' ? `Contract expires in ${days} days. Confirm renewal terms with ${l.owner} and review pricing — annual prepay may save up to 18%.` : ''}
+          ${l.status === 'risk' ? `Security or access issue detected. Review user list and revoke ex-employee access immediately.` : ''}
+        </div>
+      </div>
+      ` : ''}
+    `;
+
+    document.getElementById('drawer-overlay').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawer-close-btn').addEventListener('click', closeDrawer);
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawer-overlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  }
+  document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // ============ TAB SWITCHING ============
+  function goTab(id) {
+    document.querySelectorAll('.nav-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + id));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (id === 'predict') initForecastChart();
+    if (id === 'licenses') renderTable();
+    if (id === 'renewals') renderRenewals();
+  }
+  document.querySelectorAll('.nav-item[data-tab]').forEach(b => {
+    b.addEventListener('click', () => goTab(b.dataset.tab));
+  });
+
+  // ============ FILTERS ============
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      renderTable();
+    });
+  });
+  document.getElementById('license-search').addEventListener('input', renderTable);
+
+  document.querySelectorAll('.licenses-table thead th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (currentSort.col === col) currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+      else { currentSort.col = col; currentSort.dir = 'asc'; }
+      renderTable();
+    });
+  });
+
+  // ============ FORECAST CHART ============
+  let chartInstance = null;
+  function initForecastChart() {
+    const ctx = document.getElementById('forecast-chart');
+    if (!ctx) return;
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+    const isLight = document.body.classList.contains('light');
+    const textColor      = isLight ? 'rgba(0,0,0,0.50)'  : 'rgba(255,255,255,0.50)';
+    const gridColor      = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.05)';
+    const actualColor    = isLight ? '#1A1C22'            : '#F2F3F5';
+    const capacityColor  = isLight ? 'rgba(0,0,0,0.25)'  : 'rgba(255,255,255,0.30)';
+    const tooltipBg      = isLight ? '#FFFFFF'            : '#16181D';
+    const tooltipTitle   = isLight ? 'rgba(0,0,0,0.88)'  : '#F2F3F5';
+    const tooltipBody    = isLight ? 'rgba(0,0,0,0.55)'  : '#C5C8CE';
+    const tooltipBorder  = isLight ? 'rgba(0,0,0,0.12)'  : 'rgba(255,255,255,0.12)';
+
+    const labels  = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
+    const actual  = [248, 256, 261, 268, 277, 285, 294, null, null, null, null, null];
+    const forecast= [null, null, null, null, null, null, 294, 304, 315, 324, 332, 339];
+    const capacity= Array(12).fill(312);
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Actual',   data: actual,   borderColor: actualColor,   backgroundColor: actualColor,                   borderWidth: 2, tension: 0.35, pointRadius: 3, pointHoverRadius: 6 },
+          { label: 'Forecast', data: forecast, borderColor: '#ED8B2E',     backgroundColor: 'rgba(237,139,46,0.12)',         borderWidth: 2, borderDash: [6, 4], tension: 0.35, pointRadius: 3, pointHoverRadius: 6, fill: true },
+          { label: 'Capacity', data: capacity, borderColor: capacityColor, backgroundColor: 'transparent',                 borderWidth: 1.5, borderDash: [2, 4], tension: 0, pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: tooltipBg, titleColor: tooltipTitle, bodyColor: tooltipBody, borderColor: tooltipBorder, borderWidth: 1, padding: 12, cornerRadius: 6, titleFont: { family: 'IBM Plex Sans', size: 13 }, bodyFont: { family: 'JetBrains Mono', size: 12 } }
+        },
+        scales: {
+          x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 11 } } },
+          y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 11 } }, min: 200 }
+        }
+      }
+    });
+  }
+
+  // ============ CHAT ============
+  const answers = {
+    'Where are we wasting money?': "Three areas account for $13,290/month in waste. Salesforce in Finance ($7,250 — 50 idle seats, owner Diana Lopez), Slack inactive users ($1,260 — 42 users with no login in 60+ days, owner Sarah Chen), and Adobe Creative Cloud in Operations ($2,890 — 18 unused seats from the last campaign cycle, owner Priya Shah). Udacity Enterprise is also underused at 63% — 22 unredeemed seats. Reclaiming all of this cuts your monthly spend by 19.6%.",
+    'Which licenses expire in the next 60 days?': "Two contracts expire in 60 days. Zoom on May 15 ($3,360/mo, owner Sarah Chen) — usage is trending down 12%, recommend reducing seats at renewal. GitHub Copilot on May 20 ($5,320/mo, owner Sarah Chen) — currently 88% utilization, healthy renewal. Adobe Creative Cloud follows on June 30 (64 days, owner Priya Shah) — 18 idle seats should be reclaimed before renewing.",
+    'Forecast Q4 license needs': "Q4 forecast: Engineering needs +28 GitHub seats by mid-October based on the September hiring plan. Marketing will spike 40% on Adobe Creative Cloud around November 15 for campaign season (3-year pattern). Finance can release 50 Salesforce seats. Net Q4 change: +$3,200/mo new spend, $7,250/mo savings — a net reduction of $4,050/mo.",
+    'Show inactive users': "47 users haven't logged in for 60+ days while still holding active licenses. Breakdown: 42 on Slack, 3 on Jira and Confluence (former employees — flagged as security risk), and 2 on Figma. Estimated monthly waste: $1,840. The 3 ex-employees are the most urgent — I can revoke their access in one click.",
+    'Who owns Copilot?': "Sarah Chen (IT Director) owns the GitHub Copilot contract. Current allocation: 280 seats across Engineering and Data, 247 active users, 88% utilization. Renews May 20, 2026 — 23 days away. Total annual value $63,840. Sarah also owns GitHub Enterprise, Slack, Notion, Zoom, and Jira/Confluence.",
+    'Compare cost per employee across departments': "Cost per active user per month by department: Engineering $186 (justified — high-tier dev tools), Sales $164, Data $158, Marketing $142, Operations $98, Finance $89, HR $71. Engineering's number reflects GitHub Enterprise, Copilot, Datadog, and Snowflake. Operations and Finance numbers look low because most spend is wasted on idle seats — fewer used tools per active employee."
+  };
+  const defaultAnswer = "I don't have a canned response for that one in this demo, but in production Omantel LMS connects to your usage data, billing, and HRIS to answer these in seconds. Try one of the suggested questions to see a sample response.";
+
+  function ask(q) {
+    const thread = document.getElementById('chat-thread');
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg';
+    msg.innerHTML = `
+      <div class="chat-msg-q">${q}</div>
+      <div class="chat-msg-a"><div class="chat-msg-a-text"><span class="chat-cursor"></span></div></div>
+    `;
+    thread.insertBefore(msg, thread.firstChild);
+    msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const text = answers[q] || defaultAnswer;
+    const target = msg.querySelector('.chat-msg-a-text');
+    let i = 0;
+    target.innerHTML = '<span class="chat-cursor"></span>';
+    const interval = setInterval(() => {
+      i += 2;
+      if (i >= text.length) { target.innerHTML = text; clearInterval(interval); }
+      else { target.innerHTML = text.slice(0, i) + '<span class="chat-cursor"></span>'; }
+    }, 15);
+  }
+  document.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.getElementById('chat-input').value = c.dataset.q;
+      ask(c.dataset.q);
+    });
+  });
+  document.getElementById('chat-ask').addEventListener('click', () => {
+    const v = document.getElementById('chat-input').value.trim();
+    if (v) ask(v);
+  });
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const v = e.target.value.trim();
+      if (v) ask(v);
+    }
+  });
+
+  // ============ ALLOCATE WORKFLOW ============
+  const roleData = {
+    engineer: { tools: ['GitHub','Copilot','Linear','Datadog','Slack'], cost: '$112/mo', avatar: 'AS', name: 'Alex S.', title: 'Backend engineer', avatarBg: 'rgba(92,168,255,0.2)', avatarColor: '#5CA8FF' },
+    ae: { tools: ['Salesforce','Gong','Outreach','Slack'], cost: '$298/mo', avatar: 'NB', name: 'Nina B.', title: 'Account exec', avatarBg: 'rgba(52,211,153,0.2)', avatarColor: '#34D399' },
+    designer: { tools: ['Figma','Notion','Slack','Loom'], cost: '$84/mo', avatar: 'DR', name: 'Dani R.', title: 'Product designer', avatarBg: 'rgba(251,191,36,0.2)', avatarColor: '#FBBF24' }
+  };
+  let selectedRole = 'engineer';
+  document.querySelectorAll('.role-card').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+      r.classList.add('selected');
+      selectedRole = r.dataset.role;
+      const d = roleData[selectedRole];
+      document.getElementById('sim-status').textContent = `Will provision ${d.tools.length} licenses · estimated cost ${d.cost}`;
+    });
+  });
+  document.getElementById('simulate-btn').addEventListener('click', () => {
+    const btn = document.getElementById('simulate-btn');
+    const status = document.getElementById('sim-status');
+    const steps = document.querySelectorAll('#workflow-steps .step');
+    btn.disabled = true;
+    btn.textContent = 'Provisioning...';
+    steps.forEach(s => s.classList.remove('active', 'done'));
+    [0, 1, 2, 3].forEach((idx, i) => {
+      setTimeout(() => {
+        if (i > 0) { steps[idx - 1].classList.remove('active'); steps[idx - 1].classList.add('done'); }
+        steps[idx].classList.add('active');
+      }, 600 * (i + 1));
+    });
+    setTimeout(() => {
+      steps[3].classList.remove('active'); steps[3].classList.add('done');
+      const d = roleData[selectedRole];
+      const feed = document.getElementById('activity-feed');
+      const newRow = document.createElement('div');
+      newRow.className = 'activity-row new';
+      newRow.innerHTML = `
+        <div class="activity-avatar" style="background: ${d.avatarBg}; color: ${d.avatarColor};">${d.avatar}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div class="activity-name">${d.name}</div>
+          <div class="activity-meta">${d.title} · ${d.tools.join(', ')}</div>
+        </div>
+        <span class="mono" style="font-size: 11px; color: var(--text-3);">just now</span>
+      `;
+      if (feed) feed.insertBefore(newRow, feed.firstChild);
+      btn.disabled = false;
+      btn.textContent = 'Run another simulation';
+      status.innerHTML = `<span style="color: var(--success); font-weight: 500;">✓ ${d.name} provisioned with ${d.tools.length} licenses (${d.cost})</span>`;
+    }, 600 * 5);
+  });
+
+  // ============ THEME TOGGLE ============
+  const themeToggle = document.getElementById('theme-toggle');
+  const savedTheme = localStorage.getItem('omantel-theme') || 'dark';
+  if (savedTheme === 'light') document.body.classList.add('light');
+
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    localStorage.setItem('omantel-theme', isLight ? 'light' : 'dark');
+    // Rebuild chart with new theme colors if it's visible
+    const predictTab = document.getElementById('tab-predict');
+    if (predictTab && predictTab.classList.contains('active')) {
+      initForecastChart();
+    } else {
+      // Force rebuild next time Forecasts tab is opened
+      if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    }
+  });
+
+  // ============ INIT ============
+  renderTable();
+</script>
+
+</body>
+</html>
